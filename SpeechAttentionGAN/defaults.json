@@ -1,6 +1,6 @@
 {
   "fix_w": 128,
-  "audio_data_path": "/data/tuanio/data/noise/timit-helicopter/train",
+  "audio_data_path": "/data/tuanio/data/noise/timit-helicopter",
   "source_sub_directories": ["clean", "noisy"],
   "data_cache": "/data/tuanio/data/noise/data_cache",
   "sampling_rate": 8000,
