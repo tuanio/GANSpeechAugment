@@ -1175,7 +1175,7 @@ if __name__ == "__main__":
         transfer_timit(
             defaults["timit_dir"],
             args.data_cache,
-            defaults["timit_val_spakers"],
+            defaults["timit_val_speakers"],
             defaults["timit_test_speakers"],
             args.train_duration_max,
             args.val_duration_max,
