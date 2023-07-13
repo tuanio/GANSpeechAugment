@@ -1,0 +1,28 @@
+set -ex
+python train.py \
+    --dataroot data_cache \
+    --name speech_attention_gan_helicopter \
+    --model attention_gan \
+    --dataset_mode audio \
+    --pool_size 50 \
+    --no_dropout \
+    --norm instance \
+    --lambda_A 10 \
+    --lambda_B 10 \
+    --lambda_identity 0.5 \
+    --load_size_h 128  \
+    --load_size_w 128  \
+    --crop_size 128 \
+    --preprocess resize \
+    --batch_size 4 \
+    --niter 200 \
+    --niter_decay 0 \
+    --gpu_ids 0 \
+    --display_id 0 \
+    --display_freq 100 \
+    --print_freq 100 \
+    --input_nc 1 \
+    --output_nc 1 \
+    --use_cycled_discriminators \
+    --use_mask \
+    --max_mask_len 50

@@ -498,7 +498,6 @@ def rats_noise(root_dir,data_cache,train_speakers,test_speakers,train_duration_m
 
 def transfer_timit(timit_dir,data_cache,val_speakers,test_speakers,train_duration_max,val_duaration_max,test_duration_max,noise_type,noise_db, val_required = False):
 
-
     clean_train_path = os.path.join(timit_dir,'train','clean')
     noisy_path = os.path.join(timit_dir,'test','noisy',noise_type,f'{noise_db}dB')
 
@@ -517,7 +516,7 @@ def transfer_timit(timit_dir,data_cache,val_speakers,test_speakers,train_duratio
     noisy_clips_train_all = []
     for speaker in train_speakers_noisy:
         noisy_clips_train_all.extend(glob.glob(os.path.join(noisy_path,speaker,'*.wav')))
-    
+     
     val_clips_all = []
     for speaker in val_speakers:
         for clip in os.listdir(os.path.join(noisy_path,speaker)):
