@@ -40,8 +40,13 @@ class ModelSaver(object):
         self.args = args
         self.ckpt_dir = args.ckpt_dir
         self.max_ckpts = max_ckpts
-        self.ckpt_names = sorted([name for name in os.listdir(
-            self.ckpt_dir) if name.split(".", 1)[1] == "pth.tar"])
+        self.ckpt_names = sorted(
+            [
+                name
+                for name in os.listdir(self.ckpt_dir)
+                if name.split(".", 1)[1] == "pth.tar"
+            ]
+        )
 
     def save(self, epoch, model, optimizer, lr_scheduler, device, model_name):
         """If this step corresponds to a save step, save model parameters to disk.
@@ -57,23 +62,25 @@ class ModelSaver(object):
         # Unwrap data parallel module if needed
         try:
             model_class = model.module.__class__.__name__
-            model_state = model.to('cpu').module.state_dict()
+            model_state = model.to("cpu").module.state_dict()
             print("Saving unwrapped DataParallel module.")
         except AttributeError:
             model_class = model.__class__.__name__
-            model_state = model.to('cpu').state_dict()
+            model_state = model.to("cpu").state_dict()
 
         ckpt_dict = {
-            'ckpt_info': {'epoch': epoch},
-            'model_class': model_class,
-            'model_state': model_state,
-            'optimizer': optimizer.state_dict(),
-            'lr_scheduler': lr_scheduler.state_dict() if lr_scheduler is not None else None,
+            "ckpt_info": {"epoch": epoch},
+            "model_class": model_class,
+            "model_state": model_state,
+            "optimizer": optimizer.state_dict(),
+            "lr_scheduler": lr_scheduler.state_dict()
+            if lr_scheduler is not None
+            else None,
         }
 
         model.to(device)
 
-        file_name = f'{str(epoch).zfill(5)}_{model_name}.pth.tar'
+        file_name = f"{str(epoch).zfill(5)}_{model_name}.pth.tar"
 
         ckpt_path = os.path.join(self.ckpt_dir, file_name)
         torch.save(ckpt_dict, ckpt_path)
@@ -83,13 +90,13 @@ class ModelSaver(object):
         if self.max_ckpts:
             self.ckpt_names.append(ckpt_path)
             if len(self.ckpt_names) > self.max_ckpts:
-                oldest_ckpt = os.path.join(
-                    self.ckpt_dir, self.ckpt_names.pop(0))
+                oldest_ckpt = os.path.join(self.ckpt_dir, self.ckpt_names.pop(0))
                 os.remove(oldest_ckpt)
-                print(
-                    f"Exceeded max number of checkpoints so deleting {oldest_ckpt}")
+                print(f"Exceeded max number of checkpoints so deleting {oldest_ckpt}")
 
-    def load_model(self, model, model_name=None, ckpt_path=None, optimizer=None, scheduler=None):
+    def load_model(
+        self, model, model_name=None, ckpt_path=None, optimizer=None, scheduler=None
+    ):
         """
         Function that loads model, optimizer, and scheduler statedicts from a ckpt.
         If ckpt_path is specified, loads model from the path.
@@ -102,22 +109,27 @@ class ModelSaver(object):
             optimizer (:obj:`torch.optim.Optimizer`, optional): Initialized optimizer object
             scheduler (:obj:`torch.optim.lr_scheduler`, optional): Initilazied scheduler object
         """
-        ckpt_paths = sorted([name for name in os.listdir(
-            self.ckpt_dir) if name.split(".", 1)[1] == "pth.tar"])
+        ckpt_paths = sorted(
+            [
+                name
+                for name in os.listdir(self.ckpt_dir)
+                if name.split(".", 1)[1] == "pth.tar"
+            ]
+        )
 
         if ckpt_path is None:
-            if model_name and hasattr(self.args, 'load_epoch'):
-                file_name = f'{str(self.args.load_epoch).zfill(5)}_{model_name}.pth.tar'
+            if model_name and hasattr(self.args, "load_epoch"):
+                file_name = f"{str(self.args.load_epoch).zfill(5)}_{model_name}.pth.tar"
                 ckpt_path = os.path.join(self.ckpt_dir, file_name)
             else:
                 print("No checkpoint found. Failed to load load model checkpoint.")
                 return
 
         checkpoint = torch.load(ckpt_path, map_location=self.args.gpu_ids[0])
-        model.load_state_dict(checkpoint['model_state'])
+        model.load_state_dict(checkpoint["model_state"])
         if optimizer is not None:
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            optimizer.load_state_dict(checkpoint["optimizer"])
         if scheduler is not None:
-            scheduler.load_state_dict(checkpoint['lr_scheduler'])
+            scheduler.load_state_dict(checkpoint["lr_scheduler"])
 
         print(f"Loaded {checkpoint['model_class']} from {ckpt_path}")

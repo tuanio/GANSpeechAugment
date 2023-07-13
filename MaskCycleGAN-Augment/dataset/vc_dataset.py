@@ -9,7 +9,9 @@ import numpy as np
 
 
 class VCDataset(Dataset):
-    def __init__(self, datasetA, datasetB=None, n_frames=64, max_mask_len=25, valid=False):
+    def __init__(
+        self, datasetA, datasetB=None, n_frames=64, max_mask_len=25, valid=False
+    ):
         self.datasetA = datasetA
         self.datasetB = datasetB
         self.n_frames = n_frames
@@ -20,7 +22,7 @@ class VCDataset(Dataset):
         dataset_A = self.datasetA
         dataset_B = self.datasetB
         n_frames = self.n_frames
-        
+
         if self.valid:
             if dataset_B is None:  # only return datasetA utterance
                 return dataset_A[index]
@@ -50,9 +52,9 @@ class VCDataset(Dataset):
             end_A = start_A + n_frames
             mask_size_A = np.random.randint(0, self.max_mask_len)
             assert n_frames > mask_size_A
-            mask_start_A = np.random.randint(0, n_frames - mask_size_A) # Why not +1?
+            mask_start_A = np.random.randint(0, n_frames - mask_size_A)  # Why not +1?
             mask_A = np.ones_like(data_A[:, start_A:end_A])
-            mask_A[:, mask_start_A:mask_start_A + mask_size_A] = 0.
+            mask_A[:, mask_start_A : mask_start_A + mask_size_A] = 0.0
             train_data_A.append(data_A[:, start_A:end_A])
             train_mask_A.append(mask_A)
 
@@ -65,7 +67,7 @@ class VCDataset(Dataset):
             assert n_frames > mask_size_B
             mask_start_B = np.random.randint(0, n_frames - mask_size_B)
             mask_B = np.ones_like(data_A[:, start_A:end_A])
-            mask_B[:, mask_start_B:mask_start_B + mask_size_B] = 0.
+            mask_B[:, mask_start_B : mask_start_B + mask_size_B] = 0.0
             train_data_B.append(data_B[:, start_B:end_B])
             train_mask_B.append(mask_B)
 
@@ -74,7 +76,12 @@ class VCDataset(Dataset):
         train_mask_A = np.array(train_mask_A)
         train_mask_B = np.array(train_mask_B)
 
-        return train_data_A[index], train_mask_A[index],  train_data_B[index], train_mask_B[index]
+        return (
+            train_data_A[index],
+            train_mask_A[index],
+            train_data_B[index],
+            train_mask_B[index],
+        )
 
     def __len__(self):
         if self.datasetB is None:
@@ -83,14 +90,14 @@ class VCDataset(Dataset):
             return min(len(self.datasetA), len(self.datasetB))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Trivial test for dataset class
     trainA = np.random.randn(162, 24, 554)
     trainB = np.random.randn(158, 24, 554)
     dataset = VCDataset(trainA, trainB)
-    trainLoader = torch.utils.data.DataLoader(dataset=dataset,
-                                              batch_size=2,
-                                              shuffle=True)
+    trainLoader = torch.utils.data.DataLoader(
+        dataset=dataset, batch_size=2, shuffle=True
+    )
     for i, (A, mask_A, B, mask_B) in enumerate(trainLoader):
         print(A.shape, mask_B.shape, B.shape, mask_B.shape)
         assert A.shape == mask_B.shape == B.shape == mask_B.shape

@@ -17,13 +17,13 @@ from collections import OrderedDict
 
 def split_and_save(spec, pow=1.0, state="Train"):
     """
-        Info: Takes a spectrogram, splits it into equal parts; uses median padding to achieve this.
-        Created: 13/04/2021
-        By: Shashank S Shirol
-        Parameters:
-            spec - Magnitude Spectrogram
-            pow - value to raise the spectrogram by
-            phase - Decides how the components are returned
+    Info: Takes a spectrogram, splits it into equal parts; uses median padding to achieve this.
+    Created: 13/04/2021
+    By: Shashank S Shirol
+    Parameters:
+        spec - Magnitude Spectrogram
+        pow - value to raise the spectrogram by
+        phase - Decides how the components are returned
     """
 
     fix_w = 128  # because we have 129 n_fft bins; this will result in 129x128 spec components
@@ -33,7 +33,7 @@ def split_and_save(spec, pow=1.0, state="Train"):
     w = orig_shape[1]
     mod_fix_w = w % fix_w
     extra_cols = 0
-    if(mod_fix_w != 0):
+    if mod_fix_w != 0:
         extra_cols = fix_w - mod_fix_w
     repeat_val = np.median(spec)
     extra = np.full((spec.shape[0], extra_cols), repeat_val, dtype=spec.dtype)
@@ -48,17 +48,20 @@ def split_and_save(spec, pow=1.0, state="Train"):
     np_img = X.astype(np.uint8)
 
     curr = [0]
-    while(curr[-1] < w):
-        temp_spec = np_img[:, curr[-1]:curr[-1] + fix_w]
+    while curr[-1] < w:
+        temp_spec = np_img[:, curr[-1] : curr[-1] + fix_w]
         rgb_im = functions.to_rgb(temp_spec, chann=3)
         img = Image.fromarray(rgb_im)
         spec_components.append(img)
         curr.append(curr[-1] + fix_w)
 
-    if(state == "Train"):
-        return spec_components if extra_cols == 0 else spec_components[:-1]  # No need to return the component with padding.
+    if state == "Train":
+        return (
+            spec_components if extra_cols == 0 else spec_components[:-1]
+        )  # No need to return the component with padding.
     else:
         return spec_components  # If in "Test" state, we need all the components
+
 
 # Parallize processing the spectrograms
 
@@ -100,27 +103,75 @@ class UnalignedDataset(BaseDataset):
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
         BaseDataset.__init__(self, opt)
-        print(f'Creating Dataset with {opt.split}')
-        self.dir_A = os.path.join(opt.dataroot,'clean',opt.split)  # create a path '/path/to/data/trainA'
-        if(opt.state == "Train"):
-            self.dir_B = os.path.join(opt.dataroot,'noisy',opt.split)  # create a path '/path/to/data/trainB'
+        print(f"Creating Dataset with {opt.split}")
+        self.dir_A = os.path.join(
+            opt.dataroot, "clean", opt.split
+        )  # create a path '/path/to/data/trainA'
+        if opt.state == "Train":
+            self.dir_B = os.path.join(
+                opt.dataroot, "noisy", opt.split
+            )  # create a path '/path/to/data/trainB'
 
-        self.A_paths = sorted(make_dataset(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
-        if(opt.state == "Train"):
-            self.B_paths = sorted(make_dataset(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
+        self.A_paths = sorted(
+            make_dataset(self.dir_A, opt.max_dataset_size)
+        )  # load images from '/path/to/data/trainA'
+        if opt.state == "Train":
+            self.B_paths = sorted(
+                make_dataset(self.dir_B, opt.max_dataset_size)
+            )  # load images from '/path/to/data/trainB'
 
-        if("passcodec" in opt.preprocess):
+        if "passcodec" in opt.preprocess:
             print("------Passing samples through g726 Codec using FFmpeg------")
             for path in self.A_paths:
-                subprocess.call(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', path, '-ar', '8k', '-y', path[:-4] + '_8k.wav'])
-                subprocess.call(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', path[:-4] + '_8k.wav', '-acodec', 'g726', '-b:a', '16k', path[:-4] + '_fmt.wav'])
-                subprocess.call(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', path[:-4] + '_fmt.wav', '-ar', '8k', '-y', path])
-                if(os.name == 'nt'):  # Windows
-                    os.system('del ' + path[:-4] + '_fmt.wav')
-                    os.system('del ' + path[:-4] + '_8k.wav')
+                subprocess.call(
+                    [
+                        "ffmpeg",
+                        "-hide_banner",
+                        "-loglevel",
+                        "error",
+                        "-i",
+                        path,
+                        "-ar",
+                        "8k",
+                        "-y",
+                        path[:-4] + "_8k.wav",
+                    ]
+                )
+                subprocess.call(
+                    [
+                        "ffmpeg",
+                        "-hide_banner",
+                        "-loglevel",
+                        "error",
+                        "-i",
+                        path[:-4] + "_8k.wav",
+                        "-acodec",
+                        "g726",
+                        "-b:a",
+                        "16k",
+                        path[:-4] + "_fmt.wav",
+                    ]
+                )
+                subprocess.call(
+                    [
+                        "ffmpeg",
+                        "-hide_banner",
+                        "-loglevel",
+                        "error",
+                        "-i",
+                        path[:-4] + "_fmt.wav",
+                        "-ar",
+                        "8k",
+                        "-y",
+                        path,
+                    ]
+                )
+                if os.name == "nt":  # Windows
+                    os.system("del " + path[:-4] + "_fmt.wav")
+                    os.system("del " + path[:-4] + "_8k.wav")
                 else:  # Linux/MacOS/BSD
-                    os.system('rm ' + path[:-4] + '_fmt.wav')
-                    os.system('rm ' + path[:-4] + '_8k.wav')
+                    os.system("rm " + path[:-4] + "_fmt.wav")
+                    os.system("rm " + path[:-4] + "_8k.wav")
 
         self.spec_power = opt.spec_power
         self.energy = opt.energy
@@ -128,15 +179,21 @@ class UnalignedDataset(BaseDataset):
         self.parallel_data = False
         self.num_cores = multiprocessing.cpu_count()
 
-        #Compute the spectrogram components parallelly to make it more efficient; uses Joblib, maintains order of input data passed.
-        self.clean_specs = Parallel(n_jobs=self.num_cores, prefer="threads")(delayed(processInput)(i, self.spec_power, self.state) for i in self.A_paths)
+        # Compute the spectrogram components parallelly to make it more efficient; uses Joblib, maintains order of input data passed.
+        self.clean_specs = Parallel(n_jobs=self.num_cores, prefer="threads")(
+            delayed(processInput)(i, self.spec_power, self.state) for i in self.A_paths
+        )
 
-        #calculate no. of components in each sample
-        self.no_comps_clean = Parallel(n_jobs=self.num_cores, prefer="threads")(delayed(countComps)(i) for i in self.clean_specs)
+        # calculate no. of components in each sample
+        self.no_comps_clean = Parallel(n_jobs=self.num_cores, prefer="threads")(
+            delayed(countComps)(i) for i in self.clean_specs
+        )
         self.clean_spec_paths = []
         self.clean_comp_dict = OrderedDict()
 
-        for nameA, countA in zip(self.A_paths, self.no_comps_clean):  # Having an OrderedDict to access no. of components, so we can wait before generation to collect all components
+        for nameA, countA in zip(
+            self.A_paths, self.no_comps_clean
+        ):  # Having an OrderedDict to access no. of components, so we can wait before generation to collect all components
             self.clean_spec_paths += [nameA] * countA
             self.clean_comp_dict[nameA] = countA
 
@@ -144,20 +201,26 @@ class UnalignedDataset(BaseDataset):
         self.clean_specs = list(chain.from_iterable(self.clean_specs))
         self.clean_specs_len = len(self.clean_specs)
         assert self.clean_specs_len == len(self.clean_spec_paths)
-        
 
         ##Checking what samples are loaded:
-        if(self.parallel_data or self.opt.serial_batches):
+        if self.parallel_data or self.opt.serial_batches:
             print("-------Taking Parallel Samples-------")
         else:
             print("-------Taking Non - Parallel Samples-------")
 
-        #clearing memory
+        # clearing memory
         del self.no_comps_clean
 
-        if(self.state == "Train"): ##Preparing domainB dataset is only required if we are in the Training state; for generation, we don't require domainB
-            self.noisy_specs = Parallel(n_jobs=self.num_cores, prefer="threads")(delayed(processInput)(i, self.spec_power, self.state) for i in self.B_paths)
-            self.no_comps_noisy = Parallel(n_jobs=self.num_cores, prefer="threads")(delayed(countComps)(i) for i in self.noisy_specs)
+        if (
+            self.state == "Train"
+        ):  ##Preparing domainB dataset is only required if we are in the Training state; for generation, we don't require domainB
+            self.noisy_specs = Parallel(n_jobs=self.num_cores, prefer="threads")(
+                delayed(processInput)(i, self.spec_power, self.state)
+                for i in self.B_paths
+            )
+            self.no_comps_noisy = Parallel(n_jobs=self.num_cores, prefer="threads")(
+                delayed(countComps)(i) for i in self.noisy_specs
+            )
             self.noisy_spec_paths = []
             self.noisy_comp_dict = OrderedDict()
             for nameB, countB in zip(self.B_paths, self.no_comps_noisy):
@@ -188,22 +251,29 @@ class UnalignedDataset(BaseDataset):
         A_img = self.clean_specs[index_A]
         A = transform(A_img)
 
-        if(self.state == "Train"):
-            if self.opt.serial_batches or self.parallel_data:   # make sure index is within then range
+        if self.state == "Train":
+            if (
+                self.opt.serial_batches or self.parallel_data
+            ):  # make sure index is within then range
                 index_B = index % self.noisy_specs_len
-            else:   # randomize the index for domain B to avoid fixed pairs.
+            else:  # randomize the index for domain B to avoid fixed pairs.
                 index_B = random.randint(0, self.noisy_specs_len - 1)
             B_path = self.noisy_spec_paths[index_B]
             B_img = self.noisy_specs[index_B]
             B = transform(B_img)
-        
 
-
-        if(self.state == "Train"):
-            return {'A': A, 'B': B, 'A_paths': A_path, 'B_paths': B_path}
+        if self.state == "Train":
+            return {"A": A, "B": B, "A_paths": A_path, "B_paths": B_path}
         else:
-            B = torch.rand(1) ## A random initialization (required to prepare the model for generation, refer models.py for more info); doesn't effect the generation process.
-            return {'A': A, 'A_paths': A_path, 'A_comps': self.clean_comp_dict[A_path], "B": B}
+            B = torch.rand(
+                1
+            )  ## A random initialization (required to prepare the model for generation, refer models.py for more info); doesn't effect the generation process.
+            return {
+                "A": A,
+                "A_paths": A_path,
+                "A_comps": self.clean_comp_dict[A_path],
+                "B": B,
+            }
 
     def __len__(self):
         """Return the total number of images in the dataset.

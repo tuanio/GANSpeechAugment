@@ -9,3 +9,5 @@ Demo Website can be found at : https://leandermaben.github.io/GANSpeechAugment/
 # Codec2 bitrate
 
 - [450, 3200]
+
+- Train speaker is first 4 of timit

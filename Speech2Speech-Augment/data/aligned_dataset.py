@@ -2,9 +2,10 @@ import os
 from data.base_dataset import BaseDataset, get_params, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
-from util.util import load_pickle_file,save_pickle
+from util.util import load_pickle_file, save_pickle
 import numpy as np
 import torch
+
 
 class AlignedDataset(BaseDataset):
     """A dataset class for paired image dataset.
@@ -21,10 +22,18 @@ class AlignedDataset(BaseDataset):
         """
         BaseDataset.__init__(self, opt)
         self.dir_AB = os.path.join(opt.dataroot, opt.phase)  # get the image directory
-        self.AB_paths = sorted(make_dataset(self.dir_AB, opt.max_dataset_size))  # get image paths
-        assert(self.opt.load_size >= self.opt.crop_size)   # crop_size should be smaller than the size of loaded image
-        self.input_nc = self.opt.output_nc if self.opt.direction == 'BtoA' else self.opt.input_nc
-        self.output_nc = self.opt.input_nc if self.opt.direction == 'BtoA' else self.opt.output_nc
+        self.AB_paths = sorted(
+            make_dataset(self.dir_AB, opt.max_dataset_size)
+        )  # get image paths
+        assert (
+            self.opt.load_size >= self.opt.crop_size
+        )  # crop_size should be smaller than the size of loaded image
+        self.input_nc = (
+            self.opt.output_nc if self.opt.direction == "BtoA" else self.opt.input_nc
+        )
+        self.output_nc = (
+            self.opt.input_nc if self.opt.direction == "BtoA" else self.opt.output_nc
+        )
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
@@ -44,9 +53,9 @@ class AlignedDataset(BaseDataset):
         # split AB image into A and B
         h, w = AB.shape
         w2 = int(w / 2)
-        A = torch.tensor(AB[:,:w2],dtype=torch.float32).unsqueeze(0)
-        B = torch.tensor(AB[:,w2:],dtype=torch.float32).unsqueeze(0)
-        
+        A = torch.tensor(AB[:, :w2], dtype=torch.float32).unsqueeze(0)
+        B = torch.tensor(AB[:, w2:], dtype=torch.float32).unsqueeze(0)
+
         # A = Image.fromarray(AB[:,:w2])
         # B = Image.fromarray(AB[:,w2:])
 
@@ -57,9 +66,8 @@ class AlignedDataset(BaseDataset):
 
         # A = A_transform(A)
         # B = B_transform(B)
-        
 
-        return {'A': A, 'B': B, 'A_paths': AB_path, 'B_paths': AB_path}
+        return {"A": A, "B": B, "A_paths": AB_path, "B_paths": AB_path}
 
     def __len__(self):
         """Return the total number of images in the dataset."""

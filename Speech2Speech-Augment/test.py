@@ -42,7 +42,9 @@ import numpy as np
 try:
     import wandb
 except ImportError:
-    print('Warning: wandb package cannot be found. The option "--use_wandb" will result in error.')
+    print(
+        'Warning: wandb package cannot be found. The option "--use_wandb" will result in error.'
+    )
 
 
 def save_audio(opt, visuals_list, img_path):
@@ -51,82 +53,118 @@ def save_audio(opt, visuals_list, img_path):
     Borrowed from https://github.com/shashankshirol/GeneratingNoisySpeechData
     """
 
-    results_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.split, opt.epoch))
-    img_dir = os.path.join(results_dir, 'audios')
+    results_dir = os.path.join(
+        opt.results_dir, opt.name, "{}_{}".format(opt.split, opt.epoch)
+    )
+    img_dir = os.path.join(results_dir, "audios")
     short_path = ntpath.basename(img_path[0])
     name = os.path.splitext(short_path)[0]
 
     label = "fake_B"  # Concerned with only the fake generated; ignoring other labels
 
-    file_name = '%s/%s.wav' % (label, name)
+    file_name = "%s/%s.wav" % (label, name)
     os.makedirs(os.path.join(img_dir, label), exist_ok=True)
     save_path = os.path.join(img_dir, file_name)
 
     flag_first = True
 
     for visual in visuals_list:
-        im_data = visual["fake_B"] #Obtaining the generated Output
-        im = denorm_and_numpy(im_data) #De-Normalizing the output tensor to reconstruct the spectrogram
+        im_data = visual["fake_B"]  # Obtaining the generated Output
+        im = denorm_and_numpy(
+            im_data
+        )  # De-Normalizing the output tensor to reconstruct the spectrogram
 
-        #Resizing the output to 129x128 size (original splits)
-        if(im.shape[-1] == 1): #to drop last channel
-            im = im[:,:,0]
+        # Resizing the output to 129x128 size (original splits)
+        if im.shape[-1] == 1:  # to drop last channel
+            im = im[:, :, 0]
         im = Image.fromarray(im)
         im = im.resize((128, 129), Image.LANCZOS)
         im = np.asarray(im).astype(np.float)
 
-        if(flag_first):
+        if flag_first:
             spec = im
             flag_first = False
         else:
-            spec = np.concatenate((spec, im), axis=1) #concatenating specs to obtain original.
+            spec = np.concatenate(
+                (spec, im), axis=1
+            )  # concatenating specs to obtain original.
 
-    data, sr = getTimeSeries(spec, img_path, opt.spec_power, opt.energy, state = opt.phase)
+    data, sr = getTimeSeries(
+        spec, img_path, opt.spec_power, opt.energy, state=opt.phase
+    )
     sf.write(save_path, data, sr)
 
     return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     opt = TestOptions().parse()  # get test options
     # hard-code some parameters for test
-    opt.num_threads = 0   # test code only supports num_threads = 0
-    opt.batch_size = 1    # test code only supports batch_size = 1
+    opt.num_threads = 0  # test code only supports num_threads = 0
+    opt.batch_size = 1  # test code only supports batch_size = 1
     opt.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
-    opt.no_flip = True    # no flip; comment this line if results on flipped images are needed.
-    opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
-    dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
-    model = create_model(opt)      # create a model given opt.model and other options
-    model.setup(opt)               # regular setup: load and print networks; create schedulers
+    opt.no_flip = (
+        True  # no flip; comment this line if results on flipped images are needed.
+    )
+    opt.display_id = (
+        -1
+    )  # no visdom display; the test code saves the results to a HTML file.
+    dataset = create_dataset(
+        opt
+    )  # create a dataset given opt.dataset_mode and other options
+    model = create_model(opt)  # create a model given opt.model and other options
+    model.setup(opt)  # regular setup: load and print networks; create schedulers
 
     # initialize logger
     if opt.use_wandb:
-        wandb_run = wandb.init(project='CycleGAN-and-pix2pix', name=opt.name, config=opt) if not wandb.run else wandb.run
-        wandb_run._label(repo='CycleGAN-and-pix2pix')
+        wandb_run = (
+            wandb.init(project="CycleGAN-and-pix2pix", name=opt.name, config=opt)
+            if not wandb.run
+            else wandb.run
+        )
+        wandb_run._label(repo="CycleGAN-and-pix2pix")
 
     # create a website
-    web_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.phase, opt.epoch))  # define the website directory
+    web_dir = os.path.join(
+        opt.results_dir, opt.name, "{}_{}".format(opt.phase, opt.epoch)
+    )  # define the website directory
     if opt.load_iter > 0:  # load_iter is 0 by default
-        web_dir = '{:s}_iter{:d}'.format(web_dir, opt.load_iter)
-    print('creating web directory', web_dir)
-    webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
+        web_dir = "{:s}_iter{:d}".format(web_dir, opt.load_iter)
+    print("creating web directory", web_dir)
+    webpage = html.HTML(
+        web_dir,
+        "Experiment = %s, Phase = %s, Epoch = %s" % (opt.name, opt.phase, opt.epoch),
+    )
     # test with eval mode. This only affects layers like batchnorm and dropout.
     # For [pix2pix]: we use batchnorm and dropout in the original pix2pix. You can experiment it with and without eval() mode.
     # For [CycleGAN]: It should not affect CycleGAN as CycleGAN uses instancenorm without dropout.
     if opt.eval:
         model.eval()
-    if opt.convert_mode == 'melgan':
+    if opt.convert_mode == "melgan":
         for i, data in enumerate(dataset):
             if i >= opt.num_test:  # only apply our model to opt.num_test images.
                 break
             model.set_input(data)  # unpack data from data loader
-            model.test()           # run inference
-            save_results_as_audio_and_spec(model.real_A,model.real_B,model.fake_B,model.image_paths[0],opt.save_dir)
+            model.test()  # run inference
+            save_results_as_audio_and_spec(
+                model.real_A,
+                model.real_B,
+                model.fake_B,
+                model.image_paths[0],
+                opt.save_dir,
+            )
             visuals = model.get_current_visuals()  # get image results
-            img_path = model.get_image_paths()     # get image paths
+            img_path = model.get_image_paths()  # get image paths
             if i % 5 == 0:  # save images to an HTML file
-                print('processing (%04d)-th image... %s' % (i, img_path))
-            save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize, use_wandb=opt.use_wandb)
+                print("processing (%04d)-th image... %s" % (i, img_path))
+            save_images(
+                webpage,
+                visuals,
+                img_path,
+                aspect_ratio=opt.aspect_ratio,
+                width=opt.display_winsize,
+                use_wandb=opt.use_wandb,
+            )
         webpage.save()  # save the HTML
     else:
         """
@@ -147,7 +185,7 @@ if __name__ == '__main__':
             num_comps = datas[idx]["A_comps"]
             comps_processed = 1
 
-            while(comps_processed < num_comps):
+            while comps_processed < num_comps:
                 idx += 1
                 model.set_input(datas[idx])
                 model.test()
@@ -159,4 +197,3 @@ if __name__ == '__main__':
             print("saving: ", img_path[0])
             save_audio(opt, visuals_list, img_path)
             idx += 1
-            

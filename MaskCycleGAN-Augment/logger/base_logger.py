@@ -46,14 +46,17 @@ class BaseLogger(object):
 
         # log_dir, is the directory for tensorboard logs: hpylori/logs/
         log_dir = os.path.join(
-            args.save_dir, 'logs', args.name + '_' + datetime.now().strftime('%y%m%d_%H%M%S'))
+            args.save_dir,
+            "logs",
+            args.name + "_" + datetime.now().strftime("%y%m%d_%H%M%S"),
+        )
         self.summary_writer = SummaryWriter(log_dir=log_dir)
         self.log_path = os.path.join(
-            self.save_dir, args.name, '{}.log'.format(args.name))
+            self.save_dir, args.name, "{}.log".format(args.name)
+        )
         self.epoch = args.start_epoch
         self.iter = 0
-        self.global_step = round_down(
-            (self.epoch - 1) * dataset_len, args.batch_size)
+        self.global_step = round_down((self.epoch - 1) * dataset_len, args.batch_size)
 
     def log_text(self, text_dict):
         """
@@ -73,9 +76,9 @@ class BaseLogger(object):
         """
         for k, v in scalar_dict.items():
             if print_to_stdout:
-                self.write('[{}: {}]'.format(k, v))
+                self.write("[{}: {}]".format(k, v))
             # Group in TensorBoard by split. eg. (D_A, D_B) are grouped, (G_A, G_B) are grouped
-            k = k.replace('_', '/')
+            k = k.replace("_", "/")
             self.summary_writer.add_scalar(k, v, self.global_step)
 
     def write(self, message, print_to_stdout=True):
@@ -85,8 +88,8 @@ class BaseLogger(object):
             message (str): Message to write to .log (and stdout if applicable)
             print_to_stdout (bool): If True, print message to stdout
         """
-        with open(self.log_path, 'a') as log_file:
-            log_file.write(message + '\n')
+        with open(self.log_path, "a") as log_file:
+            log_file.write(message + "\n")
         if print_to_stdout:
             print(message)
 

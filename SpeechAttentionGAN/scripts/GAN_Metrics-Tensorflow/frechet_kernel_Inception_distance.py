@@ -14,75 +14,77 @@ tfgan = tf.contrib.gan
 
 session = tf.InteractiveSession()
 
+
 def _symmetric_matrix_square_root(mat, eps=1e-10):
-  """Compute square root of a symmetric matrix.
+    """Compute square root of a symmetric matrix.
 
-  Note that this is different from an elementwise square root. We want to
-  compute M' where M' = sqrt(mat) such that M' * M' = mat.
+    Note that this is different from an elementwise square root. We want to
+    compute M' where M' = sqrt(mat) such that M' * M' = mat.
 
-  Also note that this method **only** works for symmetric matrices.
+    Also note that this method **only** works for symmetric matrices.
 
-  Args:
-    mat: Matrix to take the square root of.
-    eps: Small epsilon such that any element less than eps will not be square
-      rooted to guard against numerical instability.
+    Args:
+      mat: Matrix to take the square root of.
+      eps: Small epsilon such that any element less than eps will not be square
+        rooted to guard against numerical instability.
 
-  Returns:
-    Matrix square root of mat.
-  """
-  # Unlike numpy, tensorflow's return order is (s, u, v)
-  s, u, v = linalg_ops.svd(mat)
-  # sqrt is unstable around 0, just use 0 in such case
-  si = array_ops.where(math_ops.less(s, eps), s, math_ops.sqrt(s))
-  # Note that the v returned by Tensorflow is v = V
-  # (when referencing the equation A = U S V^T)
-  # This is unlike Numpy which returns v = V^T
-  return math_ops.matmul(
-      math_ops.matmul(u, array_ops.diag(si)), v, transpose_b=True)
+    Returns:
+      Matrix square root of mat.
+    """
+    # Unlike numpy, tensorflow's return order is (s, u, v)
+    s, u, v = linalg_ops.svd(mat)
+    # sqrt is unstable around 0, just use 0 in such case
+    si = array_ops.where(math_ops.less(s, eps), s, math_ops.sqrt(s))
+    # Note that the v returned by Tensorflow is v = V
+    # (when referencing the equation A = U S V^T)
+    # This is unlike Numpy which returns v = V^T
+    return math_ops.matmul(math_ops.matmul(u, array_ops.diag(si)), v, transpose_b=True)
+
 
 def trace_sqrt_product(sigma, sigma_v):
-  """Find the trace of the positive sqrt of product of covariance matrices.
+    """Find the trace of the positive sqrt of product of covariance matrices.
 
-  '_symmetric_matrix_square_root' only works for symmetric matrices, so we
-  cannot just take _symmetric_matrix_square_root(sigma * sigma_v).
-  ('sigma' and 'sigma_v' are symmetric, but their product is not necessarily).
+    '_symmetric_matrix_square_root' only works for symmetric matrices, so we
+    cannot just take _symmetric_matrix_square_root(sigma * sigma_v).
+    ('sigma' and 'sigma_v' are symmetric, but their product is not necessarily).
 
-  Let sigma = A A so A = sqrt(sigma), and sigma_v = B B.
-  We want to find trace(sqrt(sigma sigma_v)) = trace(sqrt(A A B B))
-  Note the following properties:
-  (i) forall M1, M2: eigenvalues(M1 M2) = eigenvalues(M2 M1)
-     => eigenvalues(A A B B) = eigenvalues (A B B A)
-  (ii) if M1 = sqrt(M2), then eigenvalues(M1) = sqrt(eigenvalues(M2))
-     => eigenvalues(sqrt(sigma sigma_v)) = sqrt(eigenvalues(A B B A))
-  (iii) forall M: trace(M) = sum(eigenvalues(M))
-     => trace(sqrt(sigma sigma_v)) = sum(eigenvalues(sqrt(sigma sigma_v)))
-                                   = sum(sqrt(eigenvalues(A B B A)))
-                                   = sum(eigenvalues(sqrt(A B B A)))
-                                   = trace(sqrt(A B B A))
-                                   = trace(sqrt(A sigma_v A))
-  A = sqrt(sigma). Both sigma and A sigma_v A are symmetric, so we **can**
-  use the _symmetric_matrix_square_root function to find the roots of these
-  matrices.
+    Let sigma = A A so A = sqrt(sigma), and sigma_v = B B.
+    We want to find trace(sqrt(sigma sigma_v)) = trace(sqrt(A A B B))
+    Note the following properties:
+    (i) forall M1, M2: eigenvalues(M1 M2) = eigenvalues(M2 M1)
+       => eigenvalues(A A B B) = eigenvalues (A B B A)
+    (ii) if M1 = sqrt(M2), then eigenvalues(M1) = sqrt(eigenvalues(M2))
+       => eigenvalues(sqrt(sigma sigma_v)) = sqrt(eigenvalues(A B B A))
+    (iii) forall M: trace(M) = sum(eigenvalues(M))
+       => trace(sqrt(sigma sigma_v)) = sum(eigenvalues(sqrt(sigma sigma_v)))
+                                     = sum(sqrt(eigenvalues(A B B A)))
+                                     = sum(eigenvalues(sqrt(A B B A)))
+                                     = trace(sqrt(A B B A))
+                                     = trace(sqrt(A sigma_v A))
+    A = sqrt(sigma). Both sigma and A sigma_v A are symmetric, so we **can**
+    use the _symmetric_matrix_square_root function to find the roots of these
+    matrices.
 
-  Args:
-    sigma: a square, symmetric, real, positive semi-definite covariance matrix
-    sigma_v: same as sigma
+    Args:
+      sigma: a square, symmetric, real, positive semi-definite covariance matrix
+      sigma_v: same as sigma
 
-  Returns:
-    The trace of the positive square root of sigma*sigma_v
-  """
+    Returns:
+      The trace of the positive square root of sigma*sigma_v
+    """
 
-  # Note sqrt_sigma is called "A" in the proof above
-  sqrt_sigma = _symmetric_matrix_square_root(sigma)
+    # Note sqrt_sigma is called "A" in the proof above
+    sqrt_sigma = _symmetric_matrix_square_root(sigma)
 
-  # This is sqrt(A sigma_v A) above
-  sqrt_a_sigmav_a = math_ops.matmul(sqrt_sigma,
-                                    math_ops.matmul(sigma_v, sqrt_sigma))
+    # This is sqrt(A sigma_v A) above
+    sqrt_a_sigmav_a = math_ops.matmul(sqrt_sigma, math_ops.matmul(sigma_v, sqrt_sigma))
 
-  return math_ops.trace(_symmetric_matrix_square_root(sqrt_a_sigmav_a))
+    return math_ops.trace(_symmetric_matrix_square_root(sqrt_a_sigmav_a))
 
-def frechet_classifier_distance_from_activations(real_activations,
-                                                 generated_activations):
+
+def frechet_classifier_distance_from_activations(
+    real_activations, generated_activations
+):
     """Classifier distance for evaluating a generative model.
 
     This methods computes the Frechet classifier distance from activations of
@@ -133,18 +135,19 @@ def frechet_classifier_distance_from_activations(real_activations,
     m_w = math_ops.reduce_mean(generated_activations, 0)
     num_examples_real = math_ops.to_double(array_ops.shape(real_activations)[0])
     num_examples_generated = math_ops.to_double(
-        array_ops.shape(generated_activations)[0])
+        array_ops.shape(generated_activations)[0]
+    )
 
     # sigma = (1 / (n - 1)) * (X - mu) (X - mu)^T
     real_centered = real_activations - m
-    sigma = math_ops.matmul(
-        real_centered, real_centered, transpose_a=True) / (
-                    num_examples_real - 1)
+    sigma = math_ops.matmul(real_centered, real_centered, transpose_a=True) / (
+        num_examples_real - 1
+    )
 
     gen_centered = generated_activations - m_w
-    sigma_w = math_ops.matmul(
-        gen_centered, gen_centered, transpose_a=True) / (
-                      num_examples_generated - 1)
+    sigma_w = math_ops.matmul(gen_centered, gen_centered, transpose_a=True) / (
+        num_examples_generated - 1
+    )
 
     # Find the Tr(sqrt(sigma sigma_w)) component of FID
     sqrt_trace_component = trace_sqrt_product(sigma, sigma_w)
@@ -157,17 +160,18 @@ def frechet_classifier_distance_from_activations(real_activations,
 
     # Next the distance between means.
     mean = math_ops.reduce_sum(
-        math_ops.squared_difference(m, m_w))  # Equivalent to L2 but more stable.
+        math_ops.squared_difference(m, m_w)
+    )  # Equivalent to L2 but more stable.
     fid = trace + mean
     if activations_dtype != dtypes.float64:
         fid = math_ops.cast(fid, activations_dtype)
 
     return fid
 
-def kernel_classifier_distance_and_std_from_activations(real_activations,
-                                                        generated_activations,
-                                                        max_block_size=10,
-                                                        dtype=None):
+
+def kernel_classifier_distance_and_std_from_activations(
+    real_activations, generated_activations, max_block_size=10, dtype=None
+):
     """Kernel "classifier" distance for evaluating a generative model.
 
     This methods computes the kernel classifier distance from activations of
@@ -227,8 +231,7 @@ def kernel_classifier_distance_and_std_from_activations(real_activations,
 
     real_activations.shape.assert_has_rank(2)
     generated_activations.shape.assert_has_rank(2)
-    real_activations.shape[1].assert_is_compatible_with(
-        generated_activations.shape[1])
+    real_activations.shape[1].assert_is_compatible_with(generated_activations.shape[1])
 
     if dtype is None:
         dtype = real_activations.dtype
@@ -251,14 +254,20 @@ def kernel_classifier_distance_and_std_from_activations(real_activations,
     n_plusone_r = n_r - v_r * n_blocks
     n_plusone_g = n_g - v_g * n_blocks
 
-    sizes_r = array_ops.concat([
-        array_ops.fill([n_blocks - n_plusone_r], v_r),
-        array_ops.fill([n_plusone_r], v_r + 1),
-    ], 0)
-    sizes_g = array_ops.concat([
-        array_ops.fill([n_blocks - n_plusone_g], v_g),
-        array_ops.fill([n_plusone_g], v_g + 1),
-    ], 0)
+    sizes_r = array_ops.concat(
+        [
+            array_ops.fill([n_blocks - n_plusone_r], v_r),
+            array_ops.fill([n_plusone_r], v_r + 1),
+        ],
+        0,
+    )
+    sizes_g = array_ops.concat(
+        [
+            array_ops.fill([n_blocks - n_plusone_g], v_g),
+            array_ops.fill([n_plusone_g], v_g + 1),
+        ],
+        0,
+    )
 
     zero = array_ops.zeros([1], dtype=dtypes.int32)
     inds_r = array_ops.concat([zero, math_ops.cumsum(sizes_r)], 0)
@@ -267,7 +276,7 @@ def kernel_classifier_distance_and_std_from_activations(real_activations,
     dim = math_ops.cast(tf.shape(real_activations)[1], dtype)
 
     def compute_kid_block(i):
-        'Compute the ith block of the KID estimate.'
+        "Compute the ith block of the KID estimate."
         r_s = inds_r[i]
         r_e = inds_r[i + 1]
         r = real_activations[r_s:r_e]
@@ -278,15 +287,18 @@ def kernel_classifier_distance_and_std_from_activations(real_activations,
         g = generated_activations[g_s:g_e]
         n = math_ops.cast(g_e - g_s, dtype)
 
-        k_rr = (math_ops.matmul(r, r, transpose_b=True) / dim + 1)**3
-        k_rg = (math_ops.matmul(r, g, transpose_b=True) / dim + 1)**3
-        k_gg = (math_ops.matmul(g, g, transpose_b=True) / dim + 1)**3
-        return (-2 * math_ops.reduce_mean(k_rg) +
-                (math_ops.reduce_sum(k_rr) - math_ops.trace(k_rr)) / (m * (m - 1)) +
-                (math_ops.reduce_sum(k_gg) - math_ops.trace(k_gg)) / (n * (n - 1)))
+        k_rr = (math_ops.matmul(r, r, transpose_b=True) / dim + 1) ** 3
+        k_rg = (math_ops.matmul(r, g, transpose_b=True) / dim + 1) ** 3
+        k_gg = (math_ops.matmul(g, g, transpose_b=True) / dim + 1) ** 3
+        return (
+            -2 * math_ops.reduce_mean(k_rg)
+            + (math_ops.reduce_sum(k_rr) - math_ops.trace(k_rr)) / (m * (m - 1))
+            + (math_ops.reduce_sum(k_gg) - math_ops.trace(k_gg)) / (n * (n - 1))
+        )
 
     ests = functional_ops.map_fn(
-        compute_kid_block, math_ops.range(n_blocks), dtype=dtype, back_prop=False)
+        compute_kid_block, math_ops.range(n_blocks), dtype=dtype, back_prop=False
+    )
 
     mn = math_ops.reduce_mean(ests)
 
@@ -294,8 +306,9 @@ def kernel_classifier_distance_and_std_from_activations(real_activations,
     n_blocks_ = math_ops.cast(n_blocks, dtype)
     var = control_flow_ops.cond(
         math_ops.less_equal(n_blocks, 1),
-        lambda: array_ops.constant(float('nan'), dtype=dtype),
-        lambda: math_ops.reduce_sum(math_ops.square(ests - mn)) / (n_blocks_ - 1))
+        lambda: array_ops.constant(float("nan"), dtype=dtype),
+        lambda: math_ops.reduce_sum(math_ops.square(ests - mn)) / (n_blocks_ - 1),
+    )
 
     return mn, math_ops.sqrt(var / n_blocks_)
 
@@ -306,12 +319,13 @@ def inception_activations(images, num_splits=1):
     images = tf.image.resize_bilinear(images, [size, size])
     generated_images_list = array_ops.split(images, num_or_size_splits=num_splits)
     activations = functional_ops.map_fn(
-        fn=functools.partial(tfgan.eval.run_inception, output_tensor='pool_3:0'),
+        fn=functools.partial(tfgan.eval.run_inception, output_tensor="pool_3:0"),
         elems=array_ops.stack(generated_images_list),
         parallel_iterations=1,
         back_prop=False,
         swap_memory=True,
-        name='RunClassifier')
+        name="RunClassifier",
+    )
     activations = array_ops.concat(array_ops.unstack(activations), 0)
     return activations
 
@@ -320,8 +334,10 @@ def get_inception_activations(batch_size, images, inception_images, activations)
     n_batches = images.shape[0] // batch_size
     act = np.zeros([n_batches * batch_size, 2048], dtype=np.float32)
     for i in range(n_batches):
-        inp = images[i * batch_size:(i + 1) * batch_size] / 255. * 2 - 1
-        act[i * batch_size:(i + 1) * batch_size] = activations.eval(feed_dict={inception_images: inp})
+        inp = images[i * batch_size : (i + 1) * batch_size] / 255.0 * 2 - 1
+        act[i * batch_size : (i + 1) * batch_size] = activations.eval(
+            feed_dict={inception_images: inp}
+        )
     return act
 
 
@@ -329,7 +345,16 @@ def activations2distance(fcd, real_activation, fake_activation, act1, act2):
     return fcd.eval(feed_dict={real_activation: act1, fake_activation: act2})
 
 
-def get_fid(fcd, batch_size, images1, images2, inception_images, real_activation, fake_activation, activations):
+def get_fid(
+    fcd,
+    batch_size,
+    images1,
+    images2,
+    inception_images,
+    real_activation,
+    fake_activation,
+    activations,
+):
     # print('Calculating FID with %i images from each distribution' % (images1.shape[0]))
     start_time = time.time()
     act1 = get_inception_activations(batch_size, images1, inception_images, activations)
@@ -338,7 +363,17 @@ def get_fid(fcd, batch_size, images1, images2, inception_images, real_activation
     # print('FID calculation time: %f s' % (time.time() - start_time))
     return fid
 
-def get_kid(kcd, batch_size, images1, images2, inception_images, real_activation, fake_activation, activations):
+
+def get_kid(
+    kcd,
+    batch_size,
+    images1,
+    images2,
+    inception_images,
+    real_activation,
+    fake_activation,
+    activations,
+):
     # print('Calculating KID with %i images from each distribution' % (images1.shape[0]))
     start_time = time.time()
     act1 = get_inception_activations(batch_size, images1, inception_images, activations)
@@ -347,9 +382,8 @@ def get_kid(kcd, batch_size, images1, images2, inception_images, real_activation
     # print('KID calculation time: %f s' % (time.time() - start_time))
     return kcd
 
+
 def get_images(filename):
     x = misc.imread(filename)
     x = misc.imresize(x, size=[299, 299])
     return x
-
-

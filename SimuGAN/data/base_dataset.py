@@ -60,7 +60,8 @@ class BaseDataset(data.Dataset, ABC):
         """
         pass
 
-#Custom Transforms
+
+# Custom Transforms
 class CustResize(object):
     def __init__(self, output_size):
         assert isinstance(output_size, (int, tuple))
@@ -70,24 +71,25 @@ class CustResize(object):
         return pic.resize(self.output_size, Image.LANCZOS)
 
 
-
-def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
+def get_transform(
+    opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True
+):
     transform_list = []
-    
+
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
-    
-    if 'resize' in opt.preprocess:
+
+    if "resize" in opt.preprocess:
         osize = (opt.load_size, opt.load_size)
         transform_list.append(CustResize(osize))
 
-
-
     if not opt.no_flip:
-        if params is None or 'flip' not in params:
+        if params is None or "flip" not in params:
             transform_list.append(transforms.RandomHorizontalFlip())
-        elif 'flip' in params:
-            transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
+        elif "flip" in params:
+            transform_list.append(
+                transforms.Lambda(lambda img: __flip(img, params["flip"]))
+            )
 
     if convert:
         transform_list += [transforms.ToTensor()]
@@ -106,9 +108,11 @@ def __flip(img, flip):
 
 def __print_size_warning(ow, oh, w, h):
     """Print warning information about image size(only print once)"""
-    if not hasattr(__print_size_warning, 'has_printed'):
-        print("The image size needs to be a multiple of 4. "
-              "The loaded image size was (%d, %d), so it was adjusted to "
-              "(%d, %d). This adjustment will be done to all images "
-              "whose sizes are not multiples of 4" % (ow, oh, w, h))
+    if not hasattr(__print_size_warning, "has_printed"):
+        print(
+            "The image size needs to be a multiple of 4. "
+            "The loaded image size was (%d, %d), so it was adjusted to "
+            "(%d, %d). This adjustment will be done to all images "
+            "whose sizes are not multiples of 4" % (ow, oh, w, h)
+        )
         __print_size_warning.has_printed = True
