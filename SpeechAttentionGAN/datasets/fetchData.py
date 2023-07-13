@@ -726,7 +726,8 @@ def transfer_timit(
 ):
 
     clean_train_path = os.path.join(timit_dir, "train", "clean")
-    noisy_path = os.path.join(timit_dir, "test", "noisy", noise_type, f"{noise_db}dB")
+    noisy_path = os.path.join(timit_dir, 'train', 'noisy', noise_type, f"{noise_db}dB")
+    # noisy_path = os.path.join(timit_dir, "test", "noisy", noise_type, f"{noise_db}dB")
 
     print(f"Clean (Train) Path: {clean_train_path}")
     print(f"Noisy Path: {noisy_path}")
