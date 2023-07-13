@@ -54,7 +54,7 @@
     "MTAS1"
   ],
   "timit_val_speakers": ["FMLD0", "FNLP0", "MPAM0", "MNJM0"],
-  "timit_dir": "/data/tuanio/data/noise/timit-helicopter/train",
+  "timit_dir": "/data/tuanio/data/noise/timit-helicopter",
   "timit_noise_type": "helicopter",
   "timit_noise_dB": "0",
   "val_required": true
