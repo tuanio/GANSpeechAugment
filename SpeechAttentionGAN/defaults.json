@@ -11,7 +11,7 @@
     "test_percent":15,
     "size_multiple":4,
     "clean_path":"/data/tuanio/data/noise/timit-helicopter/train/clean",
-    "transfer_mode":"transfer_mode",
+    "transfer_mode":"timit",
     "use_genders":["M","F"],
     "codec_name":"codec2",
     "codec2_bitrate":3200,
