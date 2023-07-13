@@ -637,11 +637,6 @@ def transfer_timit_parallel(timit_dir,data_cache,test_speakers,train_duration_ma
 
     print(f'Saved {test_duration_saved} seconds of audio to test.')
 
-
-
-
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Prepare Data')
     parser.add_argument('--audio_data_path', dest = 'audio_path', type=str, default=defaults['audio_data_path'], help="Path to audio root folder")
